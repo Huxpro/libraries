@@ -1,4 +1,4 @@
-# Port plan: thinking-orbs → iOS (SwiftUI) + React Native
+# Port plan: thinking-orbs → iOS (SwiftUI) + React Native + Lynx
 
 Structure and process follow the border-beam port (`~/Dropbox/dev/border-beam`):
 ports live in this repo under `ports/`, tunings are extracted into a versioned
@@ -36,12 +36,12 @@ Decisions (agreed 2026-08-11):
 
 Platform equivalents for the behaviors:
 
-| Web | React Native | SwiftUI |
-|---|---|---|
-| `matchMedia` + ancestor `data-theme` observer | `useColorScheme()` (`theme` prop overrides) | `\.colorScheme` environment (`theme` param overrides) |
-| `prefers-reduced-motion` → static frame | `AccessibilityInfo.isReduceMotionEnabled` → static frame | `\.accessibilityReduceMotion` → static frame |
-| IntersectionObserver / `visibilitychange` pause | `AppState` background pause (+ `paused` prop) | `TimelineView` pauses off-screen by itself |
-| `aria-label` | `accessibilityRole="image"` + label | `.accessibilityLabel` |
+| Web | React Native | SwiftUI | Lynx |
+|---|---|---|---|
+| `matchMedia` + ancestor `data-theme` observer | `useColorScheme()` (`theme` prop overrides) | `\.colorScheme` environment (`theme` param overrides) | `__globalProps.appTheme` via `useGlobalProps()` (`theme` prop overrides) |
+| `prefers-reduced-motion` → static frame | `AccessibilityInfo.isReduceMotionEnabled` → static frame | `\.accessibilityReduceMotion` → static frame | no platform signal — host passes `reducedMotion` |
+| IntersectionObserver / `visibilitychange` pause | `AppState` background pause (+ `paused` prop) | `TimelineView` pauses off-screen by itself | `paused` prop only |
+| `aria-label` | `accessibilityRole="image"` + label | `.accessibilityLabel` | `accessibility-element` + `accessibility-traits="image"` + label |
 
 ## Phase 0 — geometry-first refactor + spec extraction (web repo) ✅ DONE
 
@@ -196,6 +196,43 @@ Layout mirrors `BorderBeamKit` (SPM `Package.swift`, `Sources`, `Tests`,
   current-Xcode macOS runner. `ThinkingOrbsKit` (iOS 15 target) is unaffected;
   `BorderBeamDemo/run.sh`-style simulator runs work locally.
 
+## Phase 2b — Lynx package (`ports/lynx/thinking-orbs-lynx`) ✅ RUNNING ON WEB
+
+**Done and verified through Lynx for Web.** All nine states at both sizes,
+dark and light, render and animate in `@lynx-js/web-core` 0.24.1 under
+headless Chromium, and pixel-diff against the web canvas renderer at worst
+mean **0.072/255** over all 72 frozen combinations (ink 0.995–1.001×). The
+native bundle builds; no device, simulator or Lynx Explorer run yet.
+
+Layout mirrors the RN port (`package.json` peer-dep pattern, `src/`, plus an
+rspeedy `example/` app that doubles as the harness card).
+
+- **No canvas exists to port to.** `x-canvas` is marked deprecated in the web
+  platform — "this proposals cannot be implemented on other platforms" — and
+  `<svg>` takes a source string, i.e. an SVG parse per frame. So a frame is
+  drawn as a **pool of `<view>`s**, one per dot, each an 8px circle moved and
+  tinted per frame by one `setStyleProperties` write. `transform` and
+  `background-color` only: no write touches layout, nothing mounts or
+  unmounts while it animates.
+- **The whole loop runs on the main thread.** `src/shared.ts` (geometry, ink
+  rule, element writes, rAF loop) is imported `with { runtime: 'shared' }`,
+  so ReactLynx compiles it into both bundles; the component keeps three thin
+  `'main thread'` entry points. React does nothing per frame.
+- **The web library needed no changes.** This is the interesting contrast
+  with the RN finding below: getting geometry onto the UI thread there would
+  have required `'worklet'` directives throughout the shared engine, so the
+  port left it on the JS thread. Lynx's shared-module attribute is at the
+  import site, so the same unmodified engine runs on the main thread.
+- **Verification, two layers** (`scripts/`):
+  1. `verify:golden` — the RN port's check verbatim: the resolved engine
+     reproduces `orbs-golden.json` to 70,115 values.
+  2. `parity` + `live-check` — boot the real component through Lynx for Web
+     in headless Chromium, one fresh `lynx-view` per case driven by
+     `global-props`, and diff against the web library's own `paintFrame` in
+     the same browser at the same DPR. `live-check` covers what a frozen
+     diff cannot see: motion, `paused`, `reducedMotion` (and that its frame
+     is exactly `t = 0.6`), and `theme="auto"` following `appTheme`.
+
 ## Phase 4 — docs and release
 
 - Per-platform READMEs mirroring the web one (install, states table, theme,
@@ -208,6 +245,51 @@ Layout mirrors `BorderBeamKit` (SPM `Package.swift`, `Sources`, `Tests`,
 
 ## Findings worth keeping
 
+- **A port can fail before it starts: check that the target has a surface
+  to draw on.** Lynx's answer is that it does not. `x-canvas` exists in the
+  web platform and is marked deprecated in its own source — "this proposals
+  cannot be implemented on other platforms" — and the `<svg>` element takes
+  a source string (in Lynx for Web it becomes a Blob URL on an `<img>`), so
+  a 566-circle frame would be an SVG parse and image decode per frame. Both
+  were ruled out in minutes by reading `@lynx-js/web-elements` rather than
+  by trying. What is left is one element per dot, which turned out to be
+  fine: the port is the closest to the web of the three, because both sides
+  end up asking the same rasteriser for the same circles.
+- **The three ports now sit at three points on the same trade-off, and the
+  ordering is not the obvious one.** iOS reimplements the engine in Swift
+  and diffs at 4.9/255; React Native shares the engine but hands it to a
+  different rasteriser and diffs at 1.4/255; Lynx shares the engine AND
+  (through Lynx for Web) the rasteriser, and diffs at 0.072/255. The
+  residual in each case is the part that was not shared. Worth remembering
+  when a port's fidelity target is being set: the number is decided by the
+  architecture, before any code is written.
+- **`runtime: 'shared'` made the thing RN's worklet finding said was too
+  expensive nearly free.** The RN port left geometry on the JS thread
+  because moving it would have required `'worklet'` directives inside the
+  shared engine — a toolchain coupling in the *web* library, paid to
+  reclaim 0.1 ms. Lynx expresses the same idea as an import attribute at
+  the call site: `import { … } from './shared.js' with { runtime: 'shared' }`
+  compiles that module into both bundles, so the unmodified engine runs on
+  the main thread. Same goal, no cost to the library. The lesson is about
+  where a platform puts the annotation, not about which platform is faster.
+- **`runOnBackground` must be CALLED from the main thread**, whatever the
+  docs' example looks like: `runOnBackground(fn)` in component scope throws
+  "runOnBackground can only be used on the main thread" at first render.
+  The wrapper belongs inside the `'main thread'` function, around a plain
+  background closure the compiler turns into a callable handle.
+- **A frozen-time harness cannot see whether anything moves.** The pixel
+  diff here is 0.07/255 across 72 combinations and would be exactly that
+  good if the animation were dead. So `live-check.mjs` exists alongside it:
+  two captures a few frames apart must differ, `paused` and `reducedMotion`
+  must NOT differ, the reduced-motion frame must equal `t = 0.6` on the
+  nose, and `theme="auto"` must flip when `appTheme` does. Every port
+  should own the second script; the iOS and RN ports currently do not.
+- **Ship the source when the compiler is the contract.** `'main thread'`
+  directives and shared-module imports are meaningless to a bundler that
+  did not compile them, so a `tsc`-built copy of this package would ship
+  the directive as an inert string literal. It ships `src/` instead, and
+  the claim was checked the only way it can be — `npm pack`, install the
+  tarball into a clean app, build, and diff the pixels again (identical).
 - **Worklets are unnecessary here, and the plan was wrong to want them.**
   Measured geometry cost per frame (desktop V8, post-JIT): `composing` 566
   dots = 0.116 ms, `working` 516 dots = 0.086 ms, `searching` 204 dots =
@@ -318,6 +400,19 @@ Layout mirrors `BorderBeamKit` (SPM `Package.swift`, `Sources`, `Tests`,
    and Skia agree once geometry is above a pixel; SwiftUI `Canvas` still
    needs the same check (border-beam's opacity>1 clamp lesson: check the
    extremes, not the average case).
+
+## Remaining for Lynx
+
+1. **A device.** The bundle builds; nothing has run on Android, iOS or
+   Harmony, or in Lynx Explorer. The number that needs hardware is
+   `setStyleProperties` on a few hundred views per frame — Lynx for Web
+   holds 60 fps for one 566-dot orb and drops to 30 at four of them, which
+   says the approach is sane, not that a phone can hold it.
+2. **Off-screen pause.** `lynx.createIntersectionObserver` and the
+   `exposure` events both exist; neither is wired up, so the port ships
+   with `paused` only, as the RN one does.
+3. **Publish.** `thinking-orbs-lynx@0.1.0` is unpublished, like
+   `thinking-orbs-native`.
 
 ## Execution order
 

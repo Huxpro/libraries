@@ -84,5 +84,11 @@ git log --follow packages/thinking-orbs/src/index.ts
 
 `thinking-orbs` also carries native ports under
 [`packages/thinking-orbs/ports`](packages/thinking-orbs/ports) — a React
-Native package and a SwiftUI package, kept in step with the web renderer by
-the golden vectors in `spec/`. Neither is published yet.
+Native package, a SwiftUI package and a Lynx (ReactLynx) package, kept in
+step with the web renderer by the golden vectors in `spec/`. None is
+published yet.
+
+The Lynx port renders without a canvas — Lynx has none — so a frame is a
+pool of views moved by a main-thread script. It is verified against the web
+renderer through Lynx for Web in a headless browser:
+[`ports/lynx/thinking-orbs-lynx`](packages/thinking-orbs/ports/lynx/thinking-orbs-lynx).

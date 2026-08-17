@@ -10,18 +10,20 @@
  * one compiles.
  */
 
-export type Platform = 'react' | 'swiftui' | 'native';
+export type Platform = 'react' | 'swiftui' | 'native' | 'lynx';
 
 export const PLATFORM_OPTIONS: { value: Platform; label: string }[] = [
   { value: 'react', label: 'React' },
   { value: 'swiftui', label: 'SwiftUI' },
   { value: 'native', label: 'React Native' },
+  { value: 'lynx', label: 'Lynx' },
 ];
 
 export const INSTALL_BY_PLATFORM: Record<Platform, string> = {
   react: 'npm install thinking-orbs',
   swiftui: '.package(url: "https://github.com/Jakubantalik/Libraries.git", from: "0.3.1")',
   native: 'npm install @shopify/react-native-skia react-native-reanimated',
+  lynx: 'npm install @lynx-js/react',
 };
 
 export const USAGE_BY_PLATFORM: Record<Platform, string> = {
@@ -37,6 +39,12 @@ ThinkingOrb(state: .working, size: .px64, displaySize: 133)`,
   native: `import { ThinkingOrb } from 'thinking-orbs-native';
 
 <ThinkingOrb state="listening" size={64} />`,
+  lynx: `import { ThinkingOrb } from 'thinking-orbs-lynx';
+
+<ThinkingOrb state="listening" size={64} />
+
+// Lynx has no prefers-reduced-motion signal — the host supplies it
+<ThinkingOrb state="working" reducedMotion={systemReducedMotion} />`,
 };
 
 const REPO_TREE = 'https://github.com/Jakubantalik/Libraries/tree/main';
@@ -64,5 +72,10 @@ export const INSTALL_NOTE_BY_PLATFORM: Record<Platform, InstallNote | null> = {
     text: 'In beta — not yet on npm. Copy the package into your project, then install the peer dependencies above.',
     href: `${REPO_TREE}/packages/thinking-orbs/ports/react-native/thinking-orbs-native`,
     hrefLabel: 'thinking-orbs-native on GitHub',
+  },
+  lynx: {
+    text: 'ReactLynx — verified on Lynx for Web, not yet on a device or on npm. Copy the package into your project; it ships TypeScript source for rspeedy to compile.',
+    href: `${REPO_TREE}/packages/thinking-orbs/ports/lynx/thinking-orbs-lynx`,
+    hrefLabel: 'thinking-orbs-lynx on GitHub',
   },
 };

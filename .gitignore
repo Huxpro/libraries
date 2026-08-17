@@ -42,3 +42,6 @@ sites/beam/parity-web/
 sites/beam/parity-diff/
 packages/border-beam/ports/ios/BorderBeamShowcase/build/
 packages/border-beam/ports/ios/BorderBeamShowcase/BorderBeamShowcase.xcodeproj/
+
+# Generated parity captures (regenerate with ports/lynx/thinking-orbs-lynx/scripts/parity.mjs --keep)
+packages/thinking-orbs/ports/lynx/thinking-orbs-lynx/parity-out/
