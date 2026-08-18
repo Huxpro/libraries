@@ -30,18 +30,27 @@ so the page is too. `build.mjs`:
 
 ## Deploying
 
-`vercel.json` at the repo root points a Vercel project at this site:
+Vercel reads `vercel.json` from whatever the project's **Root Directory**
+is set to, so this repo carries one for each sensible choice:
 
-| setting | value |
-|---|---|
-| Root Directory | the repository root |
-| Build Command | `npm run build:site-orbs-lynx` |
-| Output Directory | `sites/orbs-lynx/dist` |
-| Framework Preset | Other |
+| Root Directory | config used | extra project settings |
+|---|---|---|
+| *(repository root)* | `/vercel.json` | none — recommended |
+| `sites/orbs-lynx` | `sites/orbs-lynx/vercel.json` | turn ON *Include source files outside of the Root Directory in the Build Step*, since the build reaches into `packages/` |
 
-Those three come from `vercel.json`, so a project pointed at the repo root
-needs no manual configuration. `.node-version` pins Node 20, which is what
-rspeedy requires.
+Either way the build command, output directory and framework preset come
+from the file; nothing needs typing into the dashboard. `.node-version` pins
+Node 20, which is what rspeedy requires.
+
+A Root Directory pointing at anything else — `packages/border-beam`, say —
+builds that instead and fails, because neither config file is in scope.
+
+To deploy the built output directly, without any project configuration:
+
+```bash
+npm run build:site-orbs-lynx
+npx vercel deploy sites/orbs-lynx/dist --prod
+```
 
 The other three sites in this repo deploy elsewhere (GitHub Pages,
-Cloudflare Pages) and are untouched by that file.
+Cloudflare Pages) and are untouched by any of this.

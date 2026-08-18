@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd ../.. && npm run build:site-orbs-lynx",
+  "outputDirectory": "dist",
+  "installCommand": "cd ../.. && npm install",
+  "framework": null
+}
