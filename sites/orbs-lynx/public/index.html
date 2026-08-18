@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>thinking-orbs on Lynx — live parity harness</title>
+<meta name="description" content="The ReactLynx port of thinking-orbs, running in Lynx for Web, diffed live against the web canvas renderer.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0b0d'/%3E%3Cg fill='%23e6e6ea'%3E%3Ccircle cx='16' cy='8' r='2.2'/%3E%3Ccircle cx='23' cy='13' r='1.8'/%3E%3Ccircle cx='20' cy='22' r='2.6'/%3E%3Ccircle cx='11' cy='21' r='2'/%3E%3Ccircle cx='9' cy='12' r='1.5'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/css/client.css">
+<link rel="stylesheet" href="/styles.css">
+<script src="/static/js/client.js" type="module"></script>
+<script src="/app.js" type="module"></script>
+</head>
+<body>
+
+<header class="wrap">
+  <p class="eyebrow">thinking-orbs · Lynx port</p>
+  <h1>The same orb, drawn two ways, one on top of the other.</h1>
+  <p class="lede">
+    Lynx has no canvas. The port draws every dot as its own <code>&lt;view&gt;</code>, moved and
+    re-tinted each frame by one main-thread style write. Everything on this page is the real
+    ReactLynx component running in <strong>Lynx for Web</strong> — the same
+    <code>parity.web.bundle</code> the CI harness screenshots — next to the web library's own
+    canvas painter. Nothing here is a recording.
+  </p>
+</header>
+
+<main class="wrap">
+
+  <section id="parity">
+    <h2>1 · Parity, live</h2>
+    <p class="note">
+      Both sides get the same frozen engine instant. The third tile stacks them with
+      <code>mix-blend-mode: difference</code>, so identical pixels come out black — then
+      multiplies what is left by the amplifier, because at 1× you would see nothing.
+    </p>
+
+    <div class="controls">
+      <div class="control">
+        <label>state</label>
+        <div class="chips" id="states"></div>
+      </div>
+      <div class="row">
+        <div class="control">
+          <label>size</label>
+          <div class="chips" id="sizes"></div>
+        </div>
+        <div class="control">
+          <label>theme</label>
+          <div class="chips" id="themes"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="control grow">
+          <label>engine time <span class="mono" id="t-value">0.60</span>s</label>
+          <input id="t" type="range" min="0" max="12" step="0.01" value="0.6">
+        </div>
+        <div class="control grow">
+          <label>difference amplifier <span class="mono" id="amp-value">20×</span></label>
+          <input id="amp" type="range" min="1" max="40" step="1" value="20">
+        </div>
+      </div>
+    </div>
+
+    <div class="tiles">
+      <figure>
+        <div class="stage" id="stage-lynx"></div>
+        <figcaption><b>Lynx</b><span>pool of views · main-thread script</span></figcaption>
+      </figure>
+      <figure>
+        <div class="stage"><canvas id="ref"></canvas></div>
+        <figcaption><b>Web</b><span>thinking-orbs canvas painter</span></figcaption>
+      </figure>
+      <figure>
+        <div class="stage diff" id="stage-diff"></div>
+        <figcaption><b>Difference</b><span class="mono" id="diff-label">amplified 20×</span></figcaption>
+      </figure>
+    </div>
+
+    <p class="measured">
+      Measured headlessly over all 72 combinations (9 states × 2 sizes × 2 themes × 2 instants):
+      worst mean <b>0.072/255</b>, worst p99 <b>1.0</b>, total ink <b>0.995–1.001×</b> of the web.
+      <span class="dim">Both sides share a rasteriser here — that is the point. It leaves the
+      port's own draw sequence as the only variable.</span>
+    </p>
+  </section>
+
+  <section id="live">
+    <h2>2 · Moving, in a real Lynx runtime</h2>
+    <p class="note">
+      The example app, unmodified: nine states at both tuned sizes, its own theme toggle,
+      animating on the main thread. Tap the pill inside the card to flip the theme.
+    </p>
+    <div class="phone" id="stage-showcase"></div>
+  </section>
+
+  <section id="stress">
+    <h2>3 · What it costs</h2>
+    <p class="note">
+      One element write per dot per frame is the whole cost model, so it scales with dot count.
+      The meter is this page's own frame cadence, measured live while the orbs animate — drop
+      it to <code>shaping</code> (24 dots) or push it to <code>composing</code> (566) and watch
+      the number move.
+    </p>
+    <div class="controls">
+      <div class="row">
+        <div class="control">
+          <label>mode</label>
+          <div class="chips" id="stress-states"></div>
+        </div>
+        <div class="control">
+          <label>instances <span class="mono dim">none = this machine's baseline</span></label>
+          <div class="chips" id="counts"></div>
+        </div>
+      </div>
+    </div>
+    <div class="meter">
+      <div class="stat"><b class="mono" id="fps">–</b><span>fps</span></div>
+      <div class="stat"><b class="mono" id="dots">–</b><span>dots per frame</span></div>
+      <div class="stat"><b class="mono" id="writes">–</b><span>style writes per second</span></div>
+    </div>
+    <div class="stage wide" id="stage-stress"></div>
+    <p class="note dim">
+      Desktop-browser numbers through the DOM. Native Lynx writes go to the engine instead, and
+      nothing here has run on a device yet — this is a ceiling check on the approach.
+    </p>
+  </section>
+
+  <section id="repro">
+    <h2>4 · Reproduce it</h2>
+<pre><code>git clone https://github.com/Huxpro/libraries
+cd libraries/packages/thinking-orbs/ports/lynx/example  &amp;&amp; npm i &amp;&amp; npx rspeedy build
+cd ../thinking-orbs-lynx &amp;&amp; npm i
+npm run verify:golden   <span class="dim"># engine vs spec/orbs-golden.json — 70,115 values</span>
+npm run parity          <span class="dim"># this page's diff, headless, with numbers</span>
+npm run live-check      <span class="dim"># motion, pause, reduced motion, theme, cadence</span></code></pre>
+    <p class="note">
+      <a href="https://github.com/Huxpro/libraries/tree/main/packages/thinking-orbs/ports/lynx/thinking-orbs-lynx">thinking-orbs-lynx</a> ·
+      <a href="https://github.com/Huxpro/libraries/pull/1">the pull request</a> ·
+      <a href="https://orbs.jakubantalik.com">the web original</a>
+    </p>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <p>
+    ReactLynx 0.124 · rspeedy 0.16 · <code>@lynx-js/web-core</code> 0.24 ·
+    <code>thinking-orbs</code> 0.3.1. MIT.
+  </p>
+</footer>
+
+</body>
+</html>
