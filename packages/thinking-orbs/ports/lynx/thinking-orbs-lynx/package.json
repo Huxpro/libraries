@@ -1,0 +1,63 @@
+{
+  "name": "thinking-orbs-lynx",
+  "version": "0.1.0",
+  "description": "Dotted thought-orb loading indicators for Lynx (ReactLynx) \u2014 port of thinking-orbs",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "verify:golden": "node scripts/verify-golden.mjs",
+    "parity": "node scripts/parity.mjs",
+    "live-check": "node scripts/live-check.mjs",
+    "bench": "node scripts/bench.mjs"
+  },
+  "peerDependencies": {
+    "@lynx-js/react": ">=0.111.0",
+    "@lynx-js/types": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@lynx-js/types": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "thinking-orbs": "^0.3.1"
+  },
+  "devDependencies": {
+    "@lynx-js/react": "^0.124.0",
+    "@lynx-js/types": "4.1.0",
+    "typescript": "~5.9.0",
+    "@lynx-js/web-core": "^0.24.1",
+    "playwright": "^1.56.0",
+    "pngjs": "^7.0.0"
+  },
+  "keywords": [
+    "lynx",
+    "lynxjs",
+    "reactlynx",
+    "loading",
+    "loader",
+    "spinner",
+    "ai",
+    "agent",
+    "animation",
+    "dark-mode"
+  ],
+  "author": "Jakub Antalik",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jakubantalik/Libraries.git",
+    "directory": "packages/thinking-orbs/ports/lynx/thinking-orbs-lynx"
+  },
+  "homepage": "https://orbs.jakubantalik.com"
+}

@@ -1,0 +1,29 @@
+{
+  "name": "@thinking-orbs/lynx-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rspeedy build",
+    "dev": "rspeedy dev",
+    "preview": "rspeedy preview"
+  },
+  "dependencies": {
+    "@lynx-js/react": "^0.124.0",
+    "thinking-orbs": "^0.3.1",
+    "thinking-orbs-lynx": "file:../thinking-orbs-lynx"
+  },
+  "devDependencies": {
+    "@lynx-js/qrcode-rsbuild-plugin": "^0.6.0",
+    "@lynx-js/react-rsbuild-plugin": "^0.19.0",
+    "@lynx-js/rspeedy": "^0.16.4",
+    "@lynx-js/types": "4.1.0",
+    "@lynx-js/web-core": "^0.24.1",
+    "@rsbuild/plugin-type-check": "1.6.0",
+    "playwright": "^1.56.0",
+    "typescript": "~5.9.0"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}

@@ -25,9 +25,10 @@ npm workspaces, so one install at the root covers everything:
 ```bash
 npm install
 
-npm run dev -w @sites/beam      # beam demo
-npm run dev -w @sites/gooey     # gooey demo
-npm run dev -w @sites/orbs      # orbs demo
+npm run dev -w @sites/beam       # beam demo
+npm run dev -w @sites/gooey      # gooey demo
+npm run dev -w @sites/orbs       # orbs demo
+npm run dev -w @sites/orbs-lynx  # the Lynx port's live parity harness
 ```
 
 Both sites alias the library to its **source**, so editing a library
@@ -59,6 +60,9 @@ domain per repo:
   `npm run build:site-gooey`, output `sites/gooey/dist`.
 - **orbs.jakubantalik.com** — Cloudflare Pages, built with
   `npm run build:site-orbs`, output `sites/orbs/dist`.
+- **the Lynx parity harness** — Vercel, configured by the root `vercel.json`
+  (`npm run build:site-orbs-lynx`, output `sites/orbs-lynx/dist`). It is the
+  only site here on Vercel; the file affects nothing else.
 
 `.node-version` pins Node 20 for the Cloudflare builds, matching the version
 the GitHub workflows use; Cloudflare's default is older.
@@ -84,5 +88,14 @@ git log --follow packages/thinking-orbs/src/index.ts
 
 `thinking-orbs` also carries native ports under
 [`packages/thinking-orbs/ports`](packages/thinking-orbs/ports) — a React
-Native package and a SwiftUI package, kept in step with the web renderer by
-the golden vectors in `spec/`. Neither is published yet.
+Native package, a SwiftUI package and a Lynx (ReactLynx) package, kept in
+step with the web renderer by the golden vectors in `spec/`. None is
+published yet.
+
+The Lynx port renders without a canvas — Lynx has none — so a frame is a
+pool of views moved by a main-thread script. It is verified against the web
+renderer through Lynx for Web in a headless browser:
+[`ports/lynx/thinking-orbs-lynx`](packages/thinking-orbs/ports/lynx/thinking-orbs-lynx).
+That same comparison runs interactively in [`sites/orbs-lynx`](sites/orbs-lynx),
+which stacks the two renderers under a difference blend so the parity is
+something you can look at.

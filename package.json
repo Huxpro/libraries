@@ -14,6 +14,7 @@
     "build:site-beam": "npm run build:beam && npm run build -w @sites/beam",
     "build:site-gooey": "npm run build:gooey && npm run build -w @sites/gooey",
     "build:site-orbs": "npm run build:orbs && npm run build -w @sites/orbs",
+    "build:site-orbs-lynx": "node sites/orbs-lynx/build.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present"
   }
 }
