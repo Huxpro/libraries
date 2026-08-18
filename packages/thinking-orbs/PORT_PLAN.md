@@ -223,7 +223,7 @@ rspeedy `example/` app that doubles as the harness card).
   have required `'worklet'` directives throughout the shared engine, so the
   port left it on the JS thread. Lynx's shared-module attribute is at the
   import site, so the same unmodified engine runs on the main thread.
-- **Verification, two layers** (`scripts/`):
+- **Verification, three layers** (`scripts/`):
   1. `verify:golden` — the RN port's check verbatim: the resolved engine
      reproduces `orbs-golden.json` to 70,115 values.
   2. `parity` + `live-check` — boot the real component through Lynx for Web
@@ -232,6 +232,11 @@ rspeedy `example/` app that doubles as the harness card).
      the same browser at the same DPR. `live-check` covers what a frozen
      diff cannot see: motion, `paused`, `reducedMotion` (and that its frame
      is exactly `t = 0.6`), and `theme="auto"` following `appTheme`.
+  3. `bench` — race the approach against the canvas it replaced, on one
+     machine: a canvas arm, a plain-DOM arm (the same draw routine without
+     Lynx), and the shipped port. It exists because "one element per dot"
+     invites exactly one question, and the answer should be a measurement
+     rather than a shrug. See the port README for the table.
 
 ## Phase 4 — docs and release
 
@@ -405,9 +410,12 @@ rspeedy `example/` app that doubles as the harness card).
 
 1. **A device.** The bundle builds; nothing has run on Android, iOS or
    Harmony, or in Lynx Explorer. The number that needs hardware is
-   `setStyleProperties` on a few hundred views per frame — Lynx for Web
-   holds 60 fps for one 566-dot orb and drops to 30 at four of them, which
-   says the approach is sane, not that a phone can hold it.
+   `setStyleProperties` on a few hundred views per frame. `npm run bench`
+   puts a ceiling on it in Lynx for Web by racing the approach against the
+   canvas it replaced, on one machine: one 566-dot orb holds 57 fps, but
+   2,264 marks a frame falls to 16 where a canvas is still at 57. That says
+   the approach is sane at the densities a UI actually uses, not that a
+   phone can hold the dense ones.
 2. **Off-screen pause.** `lynx.createIntersectionObserver` and the
    `exposure` events both exist; neither is wired up, so the port ships
    with `paused` only, as the RN one does.

@@ -17,7 +17,8 @@
     "typecheck": "tsc --noEmit",
     "verify:golden": "node scripts/verify-golden.mjs",
     "parity": "node scripts/parity.mjs",
-    "live-check": "node scripts/live-check.mjs"
+    "live-check": "node scripts/live-check.mjs",
+    "bench": "node scripts/bench.mjs"
   },
   "peerDependencies": {
     "@lynx-js/react": ">=0.111.0",

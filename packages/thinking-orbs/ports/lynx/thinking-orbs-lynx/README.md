@@ -116,7 +116,8 @@ otherwise surface as an animation subtly out of step with the web.
 cd ../example && npm install && npx rspeedy build   # builds parity.web.bundle
 cd ../thinking-orbs-lynx
 npm run parity        # frozen frames, pixel-diffed against the web canvas
-npm run live-check    # motion, pause, reduced motion, theme, frame cost
+npm run live-check    # motion, pause, reduced motion, theme, cadence
+npm run bench         # this approach vs a canvas, on one machine
 ```
 
 `parity.mjs` boots this port's real component through **Lynx for Web** in
@@ -159,28 +160,50 @@ ok   auto+light === theme="light"     differs by 0.0000/255
 
 ## Cost
 
-One element write per dot per frame is the whole cost model, so it scales
-with dot count. Measured in headless Chromium (Lynx for Web, one page,
-against the same page's idle frame cadence):
+One element write per mark per frame is the whole cost model, so it scales
+with marks per frame, not with orbs. `npm run bench` measures it against the
+thing the approach replaced — the web library's own canvas painter — in
+three arms on one machine, in one browser, over the same frames:
 
-| load | dots/frame | frame cadence |
-|---|---|---|
-| 1 × `searching` @64 | 204 | 60 fps |
-| 4 × `searching` @64 | 816 | 60 fps |
-| 1 × `composing` @64 | 566 | 60 fps |
-| 2–3 × `composing` @64 | 1132–1698 | 60 fps median, occasional dropped frame |
-| 4 × `composing` @64 | 2264 | 30 fps |
+- **canvas** — one `<canvas>` per orb, the web painter
+- **views** — this port's draw routine transcribed onto plain DOM elements:
+  same engine call, same per-dot writes, no Lynx in the way
+- **lynx** — the shipped port through Lynx for Web, runtime and all
 
-The geometry is not what costs: the heaviest mode is 0.12 ms/frame of maths.
+Medians of three runs, a fresh page per configuration, headless Chromium:
+
+| marks/frame | canvas | views | lynx |
+|---|---|---|---|
+| 204 (1 × `searching`) | 60 | 60 | 60 |
+| 566 (1 × `composing`) | 60 | 60 | 57 |
+| 816 (4 × `searching`) | 60 | 60 | 55 |
+| 1,132 (2 × `composing`) | 60 | 54 | 34 |
+| 1,632 (8 × `searching`) | 60 | 46 | 29 |
+| 2,264 (4 × `composing`) | 57 | 33 | 16 |
+
+Read it as two separate costs. **canvas → views is the price of having no
+canvas**: a canvas absorbs roughly four times the marks at the same frame
+rate. **views → lynx is what the framework adds on top**, and at these
+densities it is another ~2×; some of that is Lynx for Web specifically,
+whose element API goes through the DOM, and native Lynx writes reach the
+engine directly instead.
+
+The geometry is not what costs: the heaviest mode is 0.27 ms/frame of maths
+on this machine (0.12 ms on the desktop the other ports were profiled on).
 Replacing the per-dot colour string with a constant moved the 4-instance
 number by ~10%, so the cost is the element writes and their compositing, not
-string building. Practical guidance: several orbs on screen at once is fine;
-several of the *densest* modes at 64px at once is not. `size={20}` costs a
-fifth as much, and is what an inline spinner should use anyway.
+string building.
 
-This is a Lynx-for-Web number on desktop Chromium — a ceiling check on the
-approach, not device performance. Native writes go straight to the engine
-rather than through the DOM.
+Practical guidance: one orb of any mode is free, and several light ones are
+fine. Several instances of the *densest* modes at 64px are not — that is the
+one configuration to avoid. `size={20}` costs a fifth as much and is what an
+inline spinner should use anyway.
+
+These are Lynx-for-Web numbers on desktop Chromium: a ceiling check on the
+approach, not device performance. Treat the absolute frame rates as
+machine-specific — the lynx arm in particular proved sensitive enough to
+run-to-run variance that a single reading of it is not evidence, which is
+why the script takes medians of fresh pages.
 
 ## Behaviours, and where the platform differs
 
