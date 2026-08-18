@@ -22,6 +22,7 @@ const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
 const orbs = join(repo, 'packages/thinking-orbs');
+const port = join(orbs, 'ports/lynx/thinking-orbs-lynx');
 const example = join(orbs, 'ports/lynx/example');
 const dist = join(here, 'dist');
 
@@ -39,9 +40,27 @@ if (!existsSync(join(orbs, 'dist/engine.es.js'))) {
   run('npm', ['run', 'build'], orbs);
 }
 
-// 2. the Lynx bundles. The example app is not an npm workspace (it carries
-//    its own lockfile, like the React Native example), so it installs itself.
-if (!existsSync(join(example, 'node_modules/@lynx-js/rspeedy'))) {
+// 2. the Lynx bundles. Neither the port nor the example is an npm workspace
+//    (each carries its own lockfile, like the React Native pair), so each
+//    installs itself.
+//
+//    The port's own install is not optional here even though the example is
+//    what gets built: the example links the port by path rather than through
+//    its node_modules, so when the type checker follows an import into
+//    `thinking-orbs-lynx/src`, TypeScript resolves `@lynx-js/react` from
+//    THAT directory upwards and finds nothing. (A real consumer install is
+//    unaffected — the package sits inside the app's node_modules, so the
+//    lookup lands on the app's copy.) Skipping this is a clean-clone-only
+//    failure, which is exactly the kind CI and a deploy hit and a working
+//    tree never does.
+//    `--ignore-scripts` on the port: all a deploy build needs from it is the
+//    presence of its type dependencies, and its devDependencies include
+//    Playwright, whose install script would otherwise pull a browser down
+//    into a build that never opens one.
+if (!existsSync(join(port, 'node_modules'))) {
+  run('npm', ['install', '--no-audit', '--no-fund', '--ignore-scripts'], port);
+}
+if (!existsSync(join(example, 'node_modules'))) {
   run('npm', ['install', '--no-audit', '--no-fund'], example);
 }
 run('npx', ['rspeedy', 'build'], example);
